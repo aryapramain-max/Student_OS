@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+const crypto = require("crypto");
 const { google } = require("googleapis");
+const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
 const app = express();
@@ -8,11 +10,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const APP_BASE_URL = "https://student-os-dun.vercel.app";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+function createUserKey() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
 function getGoogleOAuthClient() {
   return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    "https://student-os-dun.vercel.app/auth/google/callback"
+    `${APP_BASE_URL}/auth/google/callback`
   );
 }
 
@@ -27,6 +40,20 @@ function requireAuth(req, res, next) {
   next();
 }
 
+async function getConnectionByUserKey(userKey) {
+  const { data, error } = await supabase
+    .from("user_connections")
+    .select("*")
+    .eq("user_key", userKey)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
+
 /**
  * PUBLIC ROUTES
  */
@@ -35,10 +62,9 @@ app.get("/", (req, res) => {
   res.json({
     name: "Student OS API",
     status: "running",
-    version: "2.0.0",
-    health: "/v2/health",
+    version: "2.1.0",
     privacy: "/privacy",
-    googleAuth: "/auth/google",
+    connectGoogle: "/connect/google",
   });
 });
 
@@ -105,10 +131,10 @@ app.get("/privacy", (req, res) => {
 });
 
 /**
- * GOOGLE OAUTH ROUTES
+ * GOOGLE CONNECT FLOW
  */
 
-app.get("/auth/google", (req, res) => {
+app.get("/connect/google", (req, res) => {
   const oauth2Client = getGoogleOAuthClient();
 
   const url = oauth2Client.generateAuthUrl({
@@ -118,10 +144,15 @@ app.get("/auth/google", (req, res) => {
       "https://www.googleapis.com/auth/calendar.events",
       "https://www.googleapis.com/auth/drive.readonly",
       "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/userinfo.email",
     ],
   });
 
   res.redirect(url);
+});
+
+app.get("/auth/google", (req, res) => {
+  res.redirect("/connect/google");
 });
 
 app.get("/auth/google/callback", async (req, res) => {
@@ -135,7 +166,35 @@ app.get("/auth/google/callback", async (req, res) => {
     const oauth2Client = getGoogleOAuthClient();
     const { tokens } = await oauth2Client.getToken(code);
 
-    console.log("Google OAuth connected. Refresh token received:", Boolean(tokens.refresh_token));
+    if (!tokens.refresh_token) {
+      return res.status(400).send(`
+        <h1>Google connected, but no refresh token was returned.</h1>
+        <p>Please revoke access for Student OS in your Google Account permissions and try again.</p>
+      `);
+    }
+
+    oauth2Client.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({
+      version: "v2",
+      auth: oauth2Client,
+    });
+
+    const profile = await oauth2.userinfo.get();
+    const googleEmail = profile.data.email || null;
+    const userKey = createUserKey();
+
+    const { error } = await supabase.from("user_connections").insert({
+      user_key: userKey,
+      google_email: googleEmail,
+      google_refresh_token: tokens.refresh_token,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return res.status(500).send("Failed to save Google connection.");
+    }
 
     res.type("html").send(`
       <!DOCTYPE html>
@@ -144,10 +203,25 @@ app.get("/auth/google/callback", async (req, res) => {
           <title>Google Connected</title>
           <meta charset="UTF-8" />
         </head>
-        <body style="font-family: Arial, sans-serif; max-width: 680px; margin: 40px auto; line-height: 1.6;">
+        <body style="font-family: Arial, sans-serif; max-width: 720px; margin: 40px auto; line-height: 1.6; padding: 0 20px;">
           <h1>Google Connected Successfully</h1>
-          <p>You can return to Student OS.</p>
-          <p><strong>Note:</strong> Token storage for public users still needs to be connected to a database before public launch.</p>
+
+          <p>Your Google account has been connected to Student OS.</p>
+
+          <h2>Your Student OS User Key</h2>
+          <p>Copy this key and keep it private:</p>
+
+          <pre style="background:#f4f4f4; padding:16px; border-radius:8px; overflow:auto;">${userKey}</pre>
+
+          <p>
+            In the GPT, say:
+          </p>
+
+          <pre style="background:#f4f4f4; padding:16px; border-radius:8px; overflow:auto;">My Student OS user key is ${userKey}</pre>
+
+          <p>
+            After that, the GPT can create Google Calendar study blocks in your own Google account.
+          </p>
         </body>
       </html>
     `);
@@ -169,7 +243,13 @@ app.get("/v2/health", (req, res) => {
 
 app.post("/v2/calendar/study-blocks", async (req, res) => {
   try {
-    const { calendarId = "primary", studyBlocks } = req.body;
+    const { calendarId = "primary", studyBlocks, userKey } = req.body;
+
+    if (!userKey) {
+      return res.status(400).json({
+        error: "userKey is required. User must connect Google at /connect/google first.",
+      });
+    }
 
     if (!Array.isArray(studyBlocks) || studyBlocks.length === 0) {
       return res.status(400).json({
@@ -177,9 +257,17 @@ app.post("/v2/calendar/study-blocks", async (req, res) => {
       });
     }
 
+    const connection = await getConnectionByUserKey(userKey);
+
+    if (!connection) {
+      return res.status(404).json({
+        error: "No Google connection found for this userKey.",
+      });
+    }
+
     const oauth2Client = getGoogleOAuthClient();
     oauth2Client.setCredentials({
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      refresh_token: connection.google_refresh_token,
     });
 
     const calendar = google.calendar({

@@ -10,6 +10,10 @@
       "destination": "/api"
     },
     {
+      "source": "/connect/:path*",
+      "destination": "/api"
+    },
+    {
       "source": "/privacy",
       "destination": "/api"
     },
