@@ -84,7 +84,7 @@ app.get("/privacy", (req, res) => {
         <p>
           Student OS is an academic execution assistant that helps users plan,
           organize, and complete academic work. It may connect to third-party
-          services such as Google Calendar, Google Drive, and Google Sheets when
+          services such as Google Calendar, Google Drive, Google Sheets when
           authorized by the user.
         </p>
 
