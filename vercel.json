@@ -8,6 +8,10 @@
     {
       "source": "/auth/:path*",
       "destination": "/api"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/api"
     }
   ]
 }
