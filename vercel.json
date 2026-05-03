@@ -24,6 +24,13 @@
     {
       "source": "/",
       "destination": "/api"
-    }
+    },
+    
+    {
+  "source": "/terms",
+  "destination": "/api"
+}
+
+    
   ]
 }

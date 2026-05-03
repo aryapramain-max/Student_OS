@@ -68,6 +68,27 @@ app.get("/", (req, res) => {
   });
 });
 
+
+
+app.get("/terms", (req, res) => {
+  res.type("html").send(`
+    <h1>Student OS Terms of Service</h1>
+    <p>By using Student OS, you agree to use the service responsibly for academic planning and productivity purposes.</p>
+
+    <h2>Use of Service</h2>
+    <p>You agree not to misuse the service or attempt to access other users' data.</p>
+
+    <h2>Third-Party Services</h2>
+    <p>Student OS integrates with Google services. Use of those services is subject to their terms.</p>
+
+    <h2>Liability</h2>
+    <p>Student OS is provided as-is without warranties of any kind.</p>
+
+    <h2>Contact</h2>
+    <p>aryapramain@gmail.com</p>
+  `);
+});
+
 app.get("/privacy", (req, res) => {
   res.type("html").send(`
     <!DOCTYPE html>
