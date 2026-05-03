@@ -12,6 +12,10 @@
     {
       "source": "/privacy",
       "destination": "/api"
+    },
+    {
+      "source": "/",
+      "destination": "/api"
     }
   ]
 }
