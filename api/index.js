@@ -271,35 +271,232 @@ app.get("/auth/google/callback", async (req, res) => {
       return res.status(500).send("Failed to save Google connection.");
     }
 
-    res.type("html").send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Google Connected</title>
-          <meta charset="UTF-8" />
-        </head>
-        <body style="font-family: Arial, sans-serif; max-width: 720px; margin: 40px auto; line-height: 1.6; padding: 0 20px;">
-          <h1>Google Connected Successfully</h1>
+res.type("html").send(`
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <title>Google Connected | Student OS</title>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <style>
+        * {
+          box-sizing: border-box;
+        }
 
-          <p>Your Google account has been connected to Student OS.</p>
+        body {
+          margin: 0;
+          font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+          background: #f7f7f8;
+          color: #111827;
+        }
 
-          <h2>Your Student OS User Key</h2>
-          <p>Copy this key and keep it private:</p>
+        .page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 32px 16px;
+        }
 
-          <pre style="background:#f4f4f4; padding:16px; border-radius:8px; overflow:auto;">${userKey}</pre>
+        .card {
+          width: 100%;
+          max-width: 720px;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 24px;
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+          padding: 40px;
+        }
 
-          <p>
-            In the GPT, say:
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #ecfdf5;
+          color: #047857;
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 20px;
+        }
+
+        h1 {
+          margin: 0 0 12px;
+          font-size: 36px;
+          line-height: 1.1;
+          letter-spacing: -0.04em;
+        }
+
+        .subtitle {
+          margin: 0 0 32px;
+          font-size: 17px;
+          color: #4b5563;
+        }
+
+        .section-label {
+          font-size: 13px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #6b7280;
+          margin-bottom: 10px;
+        }
+
+        .key-box {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          background: #f3f4f6;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 14px;
+          margin-bottom: 20px;
+        }
+
+        .key {
+          flex: 1;
+          overflow-x: auto;
+          white-space: nowrap;
+          font-family: "SFMono-Regular", Consolas, Monaco, monospace;
+          font-size: 14px;
+          color: #111827;
+        }
+
+        button {
+          border: 0;
+          border-radius: 12px;
+          padding: 12px 16px;
+          background: #111827;
+          color: white;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        button:hover {
+          background: #000000;
+        }
+
+        .prompt-box {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 16px;
+          font-family: "SFMono-Regular", Consolas, Monaco, monospace;
+          font-size: 14px;
+          color: #111827;
+          overflow-x: auto;
+          margin-bottom: 24px;
+        }
+
+        .note {
+          color: #6b7280;
+          font-size: 14px;
+          line-height: 1.6;
+          margin: 0;
+        }
+
+        .footer {
+          margin-top: 28px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+          font-size: 14px;
+        }
+
+        .footer a {
+          color: #111827;
+          text-decoration: none;
+          font-weight: 600;
+        }
+
+        .footer a:hover {
+          text-decoration: underline;
+        }
+
+        @media (max-width: 640px) {
+          .card {
+            padding: 28px;
+          }
+
+          h1 {
+            font-size: 30px;
+          }
+
+          .key-box {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          button {
+            width: 100%;
+          }
+        }
+      </style>
+    </head>
+
+    <body>
+      <main class="page">
+        <section class="card">
+          <div class="badge">✓ Google connected</div>
+
+          <h1>Your account is ready</h1>
+          <p class="subtitle">
+            Student OS can now create Google Calendar study blocks in your connected Google account.
           </p>
 
-          <pre style="background:#f4f4f4; padding:16px; border-radius:8px; overflow:auto;">My Student OS user key is ${userKey}</pre>
+          <div class="section-label">Your private Student OS key</div>
 
-          <p>
-            After that, the GPT can create Google Calendar study blocks in your own Google account.
+          <div class="key-box">
+            <div class="key" id="userKey">${userKey}</div>
+            <button onclick="copyKey()">Copy key</button>
+          </div>
+
+          <div class="section-label">Paste this in the GPT</div>
+
+          <div class="prompt-box" id="promptText">
+            My Student OS user key is ${userKey}
+          </div>
+
+          <button onclick="copyPrompt()">Copy full message</button>
+
+          <p class="note" style="margin-top: 20px;">
+            Keep this key private. Anyone with this key may be able to create study blocks in your connected calendar through Student OS.
           </p>
-        </body>
-      </html>
-    `);
+
+          <div class="footer">
+            <span>Student OS</span>
+            <span>
+              <a href="/privacy">Privacy Policy</a>
+              &nbsp;·&nbsp;
+              <a href="/terms">Terms</a>
+            </span>
+          </div>
+        </section>
+      </main>
+
+      <script>
+        function copyKey() {
+          const key = document.getElementById("userKey").innerText;
+          navigator.clipboard.writeText(key);
+          event.target.innerText = "Copied";
+          setTimeout(() => event.target.innerText = "Copy key", 1500);
+        }
+
+        function copyPrompt() {
+          const text = document.getElementById("promptText").innerText;
+          navigator.clipboard.writeText(text);
+          event.target.innerText = "Copied";
+          setTimeout(() => event.target.innerText = "Copy full message", 1500);
+        }
+      </script>
+    </body>
+  </html>
+`);
   } catch (error) {
     console.error("OAuth failed:", error.response?.data || error.message);
     res.status(500).send("OAuth failed: " + error.message);
