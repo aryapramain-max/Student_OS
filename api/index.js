@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
 const { google } = require("googleapis");
+const pdfParse = require("pdf-parse");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
@@ -52,6 +53,22 @@ async function getConnectionByUserKey(userKey) {
   }
 
   return data;
+}
+
+async function getGoogleClientForUser(userKey) {
+  const connection = await getConnectionByUserKey(userKey);
+
+  if (!connection) {
+    return null;
+  }
+
+  const oauth2Client = getGoogleOAuthClient();
+
+  oauth2Client.setCredentials({
+    refresh_token: connection.google_refresh_token,
+  });
+
+  return oauth2Client;
 }
 
 /**
@@ -555,6 +572,176 @@ app.use(requireAuth);
 
 app.get("/v2/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.get("/v2/drive/files/search", async (req, res) => {
+  try {
+    const { userKey, query, mimeType, limit = 10 } = req.query;
+
+    if (!userKey) {
+      return res.status(400).json({
+        error: "userKey is required.",
+      });
+    }
+
+    if (!query) {
+      return res.status(400).json({
+        error: "query is required.",
+      });
+    }
+
+    const auth = await getGoogleClientForUser(userKey);
+
+    if (!auth) {
+      return res.status(404).json({
+        error: "No Google connection found for this userKey.",
+      });
+    }
+
+    const drive = google.drive({ version: "v3", auth });
+
+    const safeQuery = String(query).replace(/'/g, "\\'");
+    let q = `name contains '${safeQuery}' and trashed = false`;
+
+    if (mimeType) {
+      const safeMimeType = String(mimeType).replace(/'/g, "\\'");
+      q += ` and mimeType = '${safeMimeType}'`;
+    }
+
+    const response = await drive.files.list({
+      q,
+      pageSize: Math.min(Number(limit) || 10, 50),
+      fields: "files(id,name,mimeType,webViewLink,modifiedTime,size)",
+      orderBy: "modifiedTime desc",
+    });
+
+    res.json({
+      files: response.data.files || [],
+    });
+  } catch (error) {
+    console.error("Drive search error:", error.response?.data || error.message);
+
+    res.status(500).json({
+      error: "Failed to search Google Drive files",
+      details: error.response?.data || error.message,
+    });
+  }
+});
+
+app.get("/v2/drive/files/:fileId/content", async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { userKey } = req.query;
+
+    if (!userKey) {
+      return res.status(400).json({
+        error: "userKey is required.",
+      });
+    }
+
+    const auth = await getGoogleClientForUser(userKey);
+
+    if (!auth) {
+      return res.status(404).json({
+        error: "No Google connection found for this userKey.",
+      });
+    }
+
+    const drive = google.drive({ version: "v3", auth });
+
+    const metadata = await drive.files.get({
+      fileId,
+      fields: "id,name,mimeType,webViewLink,modifiedTime,size",
+    });
+
+    const mimeType = metadata.data.mimeType;
+    let text = "";
+
+    if (mimeType === "application/vnd.google-apps.document") {
+      const exported = await drive.files.export(
+        {
+          fileId,
+          mimeType: "text/plain",
+        },
+        {
+          responseType: "text",
+        }
+      );
+
+      text = exported.data;
+    } else if (mimeType === "application/vnd.google-apps.spreadsheet") {
+      const exported = await drive.files.export(
+        {
+          fileId,
+          mimeType: "text/csv",
+        },
+        {
+          responseType: "text",
+        }
+      );
+
+      text = exported.data;
+    } else if (
+      mimeType === "text/plain" ||
+      mimeType === "text/markdown" ||
+      mimeType === "text/csv"
+    ) {
+      const file = await drive.files.get(
+        {
+          fileId,
+          alt: "media",
+        },
+        {
+          responseType: "text",
+        }
+      );
+
+      text = file.data;
+    } else if (mimeType === "application/pdf") {
+      const file = await drive.files.get(
+        {
+          fileId,
+          alt: "media",
+        },
+        {
+          responseType: "arraybuffer",
+        }
+      );
+
+      const buffer = Buffer.from(file.data);
+      const parsed = await pdfParse(buffer);
+      text = parsed.text;
+    } else {
+      return res.status(400).json({
+        error: "Unsupported file type for text extraction.",
+        supportedTypes: [
+          "Google Docs",
+          "Google Sheets",
+          "PDF",
+          "text/plain",
+          "text/markdown",
+          "text/csv",
+        ],
+        mimeType,
+      });
+    }
+
+    res.json({
+      fileId,
+      name: metadata.data.name,
+      mimeType,
+      modifiedTime: metadata.data.modifiedTime,
+      webViewLink: metadata.data.webViewLink,
+      text,
+    });
+  } catch (error) {
+    console.error("Drive read error:", error.response?.data || error.message);
+
+    res.status(500).json({
+      error: "Failed to read Google Drive file",
+      details: error.response?.data || error.message,
+    });
+  }
 });
 
 app.post("/v2/calendar/study-blocks", async (req, res) => {
