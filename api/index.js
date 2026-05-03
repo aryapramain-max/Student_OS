@@ -2,14 +2,13 @@ const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
 const { google } = require("googleapis");
-const pdfParse = require("pdf-parse");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 const APP_BASE_URL = "https://studentos.pranshu.website";
 
@@ -72,8 +71,27 @@ async function getGoogleClientForUser(userKey) {
 }
 
 /**
+ * Lazy PDF parser.
+ * Do NOT import pdf-parse at the top of the file.
+ * Some versions crash Vercel during cold start because of DOMMatrix/canvas issues.
+ */
+async function parsePdfBuffer(buffer) {
+  try {
+    const pdfParse = require("pdf-parse");
+    const parsed = await pdfParse(buffer);
+    return parsed.text || "";
+  } catch (error) {
+    console.error("PDF parse error:", error.message);
+    throw new Error(
+      "PDF parsing failed on the server. Try using a Google Doc, text file, or install pdf-parse@1.1.1."
+    );
+  }
+}
+
+/**
  * PUBLIC ROUTES
  */
+
 app.get("/debug/oauth-url", (req, res) => {
   const oauth2Client = getGoogleOAuthClient();
 
@@ -95,9 +113,6 @@ app.get("/debug/oauth-url", (req, res) => {
   });
 });
 
-
-
-
 app.get("/", (req, res) => {
   res.type("html").send(`
     <!DOCTYPE html>
@@ -105,9 +120,9 @@ app.get("/", (req, res) => {
       <head>
         <title>Student OS</title>
         <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
       <body style="font-family: Arial, sans-serif; max-width: 760px; margin: 40px auto; line-height: 1.6; padding: 0 20px;">
-        
         <h1>Student OS</h1>
 
         <p>
@@ -120,43 +135,67 @@ app.get("/", (req, res) => {
           <a href="/connect/google">Connect your Google account</a>
         </p>
 
-        <!-- 🔴 VERY IMPORTANT: Make this section obvious -->
         <h2>Legal</h2>
         <ul>
           <li><a href="/privacy">Privacy Policy</a></li>
           <li><a href="/terms">Terms of Service</a></li>
         </ul>
 
-        <!-- 🔴 ALSO ADD FOOTER (Google checks this) -->
         <hr />
         <p>
           <a href="/privacy">Privacy Policy</a> |
           <a href="/terms">Terms of Service</a>
         </p>
-
       </body>
     </html>
   `);
 });
 
-
-
 app.get("/terms", (req, res) => {
   res.type("html").send(`
-    <h1>Student OS Terms of Service</h1>
-    <p>By using Student OS, you agree to use the service responsibly for academic planning and productivity purposes.</p>
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Student OS Terms of Service</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
+      <body style="font-family: Arial, sans-serif; max-width: 760px; margin: 40px auto; line-height: 1.6; padding: 0 20px;">
+        <h1>Student OS Terms of Service</h1>
 
-    <h2>Use of Service</h2>
-    <p>You agree not to misuse the service or attempt to access other users' data.</p>
+        <p>
+          By using Student OS, you agree to use the service responsibly for
+          academic planning and productivity purposes.
+        </p>
 
-    <h2>Third-Party Services</h2>
-    <p>Student OS integrates with Google services. Use of those services is subject to their terms.</p>
+        <h2>Use of Service</h2>
+        <p>
+          You agree not to misuse the service or attempt to access other users' data.
+        </p>
 
-    <h2>Liability</h2>
-    <p>Student OS is provided as-is without warranties of any kind.</p>
+        <h2>Third-Party Services</h2>
+        <p>
+          Student OS integrates with Google services. Use of those services is
+          subject to Google's terms and policies.
+        </p>
 
-    <h2>Contact</h2>
-    <p>aryapramain@gmail.com</p>
+        <h2>Liability</h2>
+        <p>
+          Student OS is provided as-is without warranties of any kind.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          <a href="mailto:aryapramain@gmail.com">aryapramain@gmail.com</a>
+        </p>
+
+        <hr />
+        <p>
+          <a href="/">Home</a> |
+          <a href="/privacy">Privacy Policy</a>
+        </p>
+      </body>
+    </html>
   `);
 });
 
@@ -176,7 +215,7 @@ app.get("/privacy", (req, res) => {
         <p>
           Student OS is an academic execution assistant that helps users plan,
           organize, and complete academic work. It may connect to third-party
-          services such as Google Calendar, Google Drive, Google Sheets when
+          services such as Google Calendar, Google Drive, and Google Sheets when
           authorized by the user.
         </p>
 
@@ -216,6 +255,12 @@ app.get("/privacy", (req, res) => {
         <p>
           For privacy questions, contact:
           <a href="mailto:aryapramain@gmail.com">aryapramain@gmail.com</a>
+        </p>
+
+        <hr />
+        <p>
+          <a href="/">Home</a> |
+          <a href="/terms">Terms of Service</a>
         </p>
       </body>
     </html>
@@ -288,241 +333,235 @@ app.get("/auth/google/callback", async (req, res) => {
       return res.status(500).send("Failed to save Google connection.");
     }
 
-res.type("html").send(`
-  <!DOCTYPE html>
-  <html>
-    <head>
-      <title>Google Connected | Student OS</title>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <style>
-        * {
-          box-sizing: border-box;
-        }
+    res.type("html").send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Google Connected | Student OS</title>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <style>
+            * {
+              box-sizing: border-box;
+            }
 
-        body {
-          margin: 0;
-          font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-          background: #f7f7f8;
-          color: #111827;
-        }
+            body {
+              margin: 0;
+              font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+              background: #f7f7f8;
+              color: #111827;
+            }
 
-        .page {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 32px 16px;
-        }
+            .page {
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 32px 16px;
+            }
 
-        .card {
-          width: 100%;
-          max-width: 720px;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 24px;
-          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-          padding: 40px;
-        }
+            .card {
+              width: 100%;
+              max-width: 720px;
+              background: #ffffff;
+              border: 1px solid #e5e7eb;
+              border-radius: 24px;
+              box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+              padding: 40px;
+            }
 
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: #ecfdf5;
-          color: #047857;
-          font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 20px;
-        }
+            .badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              padding: 8px 12px;
+              border-radius: 999px;
+              background: #ecfdf5;
+              color: #047857;
+              font-size: 14px;
+              font-weight: 600;
+              margin-bottom: 20px;
+            }
 
-        h1 {
-          margin: 0 0 12px;
-          font-size: 36px;
-          line-height: 1.1;
-          letter-spacing: -0.04em;
-        }
+            h1 {
+              margin: 0 0 12px;
+              font-size: 36px;
+              line-height: 1.1;
+              letter-spacing: -0.04em;
+            }
 
-        .subtitle {
-          margin: 0 0 32px;
-          font-size: 17px;
-          color: #4b5563;
-        }
+            .subtitle {
+              margin: 0 0 32px;
+              font-size: 17px;
+              color: #4b5563;
+            }
 
-        .section-label {
-          font-size: 13px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: #6b7280;
-          margin-bottom: 10px;
-        }
+            .section-label {
+              font-size: 13px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+              color: #6b7280;
+              margin-bottom: 10px;
+            }
 
-        .key-box {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-          background: #f3f4f6;
-          border: 1px solid #e5e7eb;
-          border-radius: 16px;
-          padding: 14px;
-          margin-bottom: 20px;
-        }
+            .key-box {
+              display: flex;
+              gap: 12px;
+              align-items: center;
+              background: #f3f4f6;
+              border: 1px solid #e5e7eb;
+              border-radius: 16px;
+              padding: 14px;
+              margin-bottom: 20px;
+            }
 
-        .key {
-          flex: 1;
-          overflow-x: auto;
-          white-space: nowrap;
-          font-family: "SFMono-Regular", Consolas, Monaco, monospace;
-          font-size: 14px;
-          color: #111827;
-        }
+            .key {
+              flex: 1;
+              overflow-x: auto;
+              white-space: nowrap;
+              font-family: "SFMono-Regular", Consolas, Monaco, monospace;
+              font-size: 14px;
+              color: #111827;
+            }
 
-        button {
-          border: 0;
-          border-radius: 12px;
-          padding: 12px 16px;
-          background: #111827;
-          color: white;
-          font-size: 14px;
-          font-weight: 700;
-          cursor: pointer;
-        }
+            button {
+              border: 0;
+              border-radius: 12px;
+              padding: 12px 16px;
+              background: #111827;
+              color: white;
+              font-size: 14px;
+              font-weight: 700;
+              cursor: pointer;
+            }
 
-        button:hover {
-          background: #000000;
-        }
+            button:hover {
+              background: #000000;
+            }
 
-        .prompt-box {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 16px;
-          padding: 16px;
-          font-family: "SFMono-Regular", Consolas, Monaco, monospace;
-          font-size: 14px;
-          color: #111827;
-          overflow-x: auto;
-          margin-bottom: 24px;
-        }
+            .prompt-box {
+              background: #ffffff;
+              border: 1px solid #e5e7eb;
+              border-radius: 16px;
+              padding: 16px;
+              font-family: "SFMono-Regular", Consolas, Monaco, monospace;
+              font-size: 14px;
+              color: #111827;
+              overflow-x: auto;
+              margin-bottom: 24px;
+            }
 
-        .note {
-          color: #6b7280;
-          font-size: 14px;
-          line-height: 1.6;
-          margin: 0;
-        }
+            .note {
+              color: #6b7280;
+              font-size: 14px;
+              line-height: 1.6;
+              margin: 0;
+            }
 
-        .footer {
-          margin-top: 28px;
-          padding-top: 20px;
-          border-top: 1px solid #e5e7eb;
-          display: flex;
-          justify-content: space-between;
-          gap: 16px;
-          flex-wrap: wrap;
-          font-size: 14px;
-        }
+            .footer {
+              margin-top: 28px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              display: flex;
+              justify-content: space-between;
+              gap: 16px;
+              flex-wrap: wrap;
+              font-size: 14px;
+            }
 
-        .footer a {
-          color: #111827;
-          text-decoration: none;
-          font-weight: 600;
-        }
+            .footer a {
+              color: #111827;
+              text-decoration: none;
+              font-weight: 600;
+            }
 
-        .footer a:hover {
-          text-decoration: underline;
-        }
+            .footer a:hover {
+              text-decoration: underline;
+            }
 
-        @media (max-width: 640px) {
-          .card {
-            padding: 28px;
-          }
+            @media (max-width: 640px) {
+              .card {
+                padding: 28px;
+              }
 
-          h1 {
-            font-size: 30px;
-          }
+              h1 {
+                font-size: 30px;
+              }
 
-          .key-box {
-            flex-direction: column;
-            align-items: stretch;
-          }
+              .key-box {
+                flex-direction: column;
+                align-items: stretch;
+              }
 
-          button {
-            width: 100%;
-          }
-        }
-      </style>
-    </head>
+              button {
+                width: 100%;
+              }
+            }
+          </style>
+        </head>
 
-    <body>
-      <main class="page">
-        <section class="card">
-          <div class="badge">✓ Google connected</div>
+        <body>
+          <main class="page">
+            <section class="card">
+              <div class="badge">✓ Google connected</div>
 
-          <h1>Your account is ready</h1>
-          <p class="subtitle">
-            Student OS can now create Google Calendar study blocks in your connected Google account.
-          </p>
+              <h1>Your account is ready</h1>
+              <p class="subtitle">
+                Student OS can now create Google Calendar study blocks and read supported academic files from your connected Google account.
+              </p>
 
-          <div class="section-label">Your private Student OS key</div>
+              <div class="section-label">Your private Student OS key</div>
 
-          <div class="key-box">
-            <div class="key" id="userKey">${userKey}</div>
-            <button onclick="copyKey()">Copy key</button>
-          </div>
+              <div class="key-box">
+                <div class="key" id="userKey">${userKey}</div>
+                <button onclick="copyKey(this)">Copy key</button>
+              </div>
 
-          <div class="section-label">Paste this in the GPT</div>
+              <div class="section-label">Paste this in the GPT</div>
 
-          <div class="prompt-box" id="promptText">
-            My Student OS user key is ${userKey}
-          </div>
+              <div class="prompt-box" id="promptText">My Student OS user key is ${userKey}</div>
 
-          <button onclick="copyPrompt()">Copy full message</button>
+              <button onclick="copyPrompt(this)">Copy full message</button>
 
-          <p class="note" style="margin-top: 20px;">
-            Keep this key private. Anyone with this key may be able to create study blocks in your connected calendar through Student OS.
-          </p>
+              <p class="note" style="margin-top: 20px;">
+                Keep this key private. Anyone with this key may be able to create study blocks or access connected academic files through Student OS.
+              </p>
 
-          <div class="footer">
-            <span>Student OS</span>
-            <span>
-              <a href="/privacy">Privacy Policy</a>
-              &nbsp;·&nbsp;
-              <a href="/terms">Terms</a>
-            </span>
-          </div>
-        </section>
-      </main>
+              <div class="footer">
+                <span>Student OS</span>
+                <span>
+                  <a href="/privacy">Privacy Policy</a>
+                  &nbsp;·&nbsp;
+                  <a href="/terms">Terms</a>
+                </span>
+              </div>
+            </section>
+          </main>
 
-      <script>
-        function copyKey() {
-          const key = document.getElementById("userKey").innerText;
-          navigator.clipboard.writeText(key);
-          event.target.innerText = "Copied";
-          setTimeout(() => event.target.innerText = "Copy key", 1500);
-        }
+          <script>
+            function copyKey(button) {
+              const key = document.getElementById("userKey").innerText;
+              navigator.clipboard.writeText(key);
+              button.innerText = "Copied";
+              setTimeout(() => button.innerText = "Copy key", 1500);
+            }
 
-        function copyPrompt() {
-          const text = document.getElementById("promptText").innerText;
-          navigator.clipboard.writeText(text);
-          event.target.innerText = "Copied";
-          setTimeout(() => event.target.innerText = "Copy full message", 1500);
-        }
-      </script>
-    </body>
-  </html>
-`);
+            function copyPrompt(button) {
+              const text = document.getElementById("promptText").innerText;
+              navigator.clipboard.writeText(text);
+              button.innerText = "Copied";
+              setTimeout(() => button.innerText = "Copy full message", 1500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
   } catch (error) {
     console.error("OAuth failed:", error.response?.data || error.message);
     res.status(500).send("OAuth failed: " + error.message);
   }
 });
-
-/**
- * PROTECTED GPT ACTION ROUTES
- */
 
 app.get("/debug/supabase", async (req, res) => {
   try {
@@ -567,11 +606,90 @@ app.get("/debug/supabase", async (req, res) => {
   }
 });
 
+/**
+ * PROTECTED GPT ACTION ROUTES
+ */
 
 app.use(requireAuth);
 
 app.get("/v2/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.post("/v2/calendar/study-blocks", async (req, res) => {
+  try {
+    const { calendarId = "primary", studyBlocks, userKey } = req.body;
+
+    if (!userKey) {
+      return res.status(400).json({
+        error: "userKey is required. User must connect Google at /connect/google first.",
+      });
+    }
+
+    if (!Array.isArray(studyBlocks) || studyBlocks.length === 0) {
+      return res.status(400).json({
+        error: "studyBlocks must be a non-empty array",
+      });
+    }
+
+    const connection = await getConnectionByUserKey(userKey);
+
+    if (!connection) {
+      return res.status(404).json({
+        error: "No Google connection found for this userKey.",
+      });
+    }
+
+    const oauth2Client = getGoogleOAuthClient();
+    oauth2Client.setCredentials({
+      refresh_token: connection.google_refresh_token,
+    });
+
+    const calendar = google.calendar({
+      version: "v3",
+      auth: oauth2Client,
+    });
+
+    const createdEvents = [];
+
+    for (const block of studyBlocks) {
+      if (!block.title || !block.startTime || !block.endTime) {
+        return res.status(400).json({
+          error: "Each study block requires title, startTime, and endTime",
+        });
+      }
+
+      const event = await calendar.events.insert({
+        calendarId,
+        requestBody: {
+          summary: block.title,
+          description: block.description || "",
+          location: block.location || "",
+          start: { dateTime: block.startTime },
+          end: { dateTime: block.endTime },
+        },
+      });
+
+      createdEvents.push({
+        id: event.data.id,
+        calendarId,
+        title: event.data.summary,
+        description: event.data.description,
+        startTime: event.data.start?.dateTime,
+        endTime: event.data.end?.dateTime,
+        htmlLink: event.data.htmlLink,
+      });
+    }
+
+    res.status(201).json({ createdEvents });
+  } catch (error) {
+    console.error("Calendar error:", error.response?.data || error.message);
+
+    res.status(500).json({
+      error: "Failed to create study blocks",
+      details: error.response?.data || error.message,
+    });
+  }
 });
 
 app.get("/v2/drive/files/search", async (req, res) => {
@@ -709,8 +827,7 @@ app.get("/v2/drive/files/:fileId/content", async (req, res) => {
       );
 
       const buffer = Buffer.from(file.data);
-      const parsed = await pdfParse(buffer);
-      text = parsed.text;
+      text = await parsePdfBuffer(buffer);
     } else {
       return res.status(400).json({
         error: "Unsupported file type for text extraction.",
@@ -739,82 +856,6 @@ app.get("/v2/drive/files/:fileId/content", async (req, res) => {
 
     res.status(500).json({
       error: "Failed to read Google Drive file",
-      details: error.response?.data || error.message,
-    });
-  }
-});
-
-app.post("/v2/calendar/study-blocks", async (req, res) => {
-  try {
-    const { calendarId = "primary", studyBlocks, userKey } = req.body;
-
-    if (!userKey) {
-      return res.status(400).json({
-        error: "userKey is required. User must connect Google at /connect/google first.",
-      });
-    }
-
-    if (!Array.isArray(studyBlocks) || studyBlocks.length === 0) {
-      return res.status(400).json({
-        error: "studyBlocks must be a non-empty array",
-      });
-    }
-
-    const connection = await getConnectionByUserKey(userKey);
-
-    if (!connection) {
-      return res.status(404).json({
-        error: "No Google connection found for this userKey.",
-      });
-    }
-
-    const oauth2Client = getGoogleOAuthClient();
-    oauth2Client.setCredentials({
-      refresh_token: connection.google_refresh_token,
-    });
-
-    const calendar = google.calendar({
-      version: "v3",
-      auth: oauth2Client,
-    });
-
-    const createdEvents = [];
-
-    for (const block of studyBlocks) {
-      if (!block.title || !block.startTime || !block.endTime) {
-        return res.status(400).json({
-          error: "Each study block requires title, startTime, and endTime",
-        });
-      }
-
-      const event = await calendar.events.insert({
-        calendarId,
-        requestBody: {
-          summary: block.title,
-          description: block.description || "",
-          location: block.location || "",
-          start: { dateTime: block.startTime },
-          end: { dateTime: block.endTime },
-        },
-      });
-
-      createdEvents.push({
-        id: event.data.id,
-        calendarId,
-        title: event.data.summary,
-        description: event.data.description,
-        startTime: event.data.start?.dateTime,
-        endTime: event.data.end?.dateTime,
-        htmlLink: event.data.htmlLink,
-      });
-    }
-
-    res.status(201).json({ createdEvents });
-  } catch (error) {
-    console.error("Calendar error:", error.response?.data || error.message);
-
-    res.status(500).json({
-      error: "Failed to create study blocks",
       details: error.response?.data || error.message,
     });
   }
