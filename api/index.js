@@ -235,6 +235,50 @@ app.get("/auth/google/callback", async (req, res) => {
  * PROTECTED GPT ACTION ROUTES
  */
 
+app.get("/debug/supabase", async (req, res) => {
+  try {
+    const hasUrl = Boolean(process.env.SUPABASE_URL);
+    const hasKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+    if (!hasUrl || !hasKey) {
+      return res.json({
+        ok: false,
+        hasUrl,
+        hasKey,
+        message: "Missing Supabase env vars in Vercel",
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("user_connections")
+      .select("id,user_key,google_email,created_at")
+      .limit(1);
+
+    if (error) {
+      return res.json({
+        ok: false,
+        hasUrl,
+        hasKey,
+        supabaseError: error,
+      });
+    }
+
+    res.json({
+      ok: true,
+      hasUrl,
+      hasKey,
+      tableWorks: true,
+      sampleRows: data,
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message,
+    });
+  }
+});
+
+
 app.use(requireAuth);
 
 app.get("/v2/health", (req, res) => {
