@@ -135,6 +135,55 @@ app.get("/privacy", (req, res) => {
   `);
 });
 
+app.get("/", (req, res) => {
+  res.json({
+    name: "Academic Execution API",
+    status: "running",
+    version: "2.0.0",
+    health: "/v2/health",
+  });
+});
+
+// ADD GOOGLE LOGIN ROUTES HERE
+
+app.get("/auth/google", (req, res) => {
+  const oauth2Client = getGoogleOAuthClient();
+
+  const url = oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: [
+      "https://www.googleapis.com/auth/calendar.events",
+      "https://www.googleapis.com/auth/drive.readonly",
+      "https://www.googleapis.com/auth/spreadsheets"
+    ],
+    prompt: "consent"
+  });
+
+  res.redirect(url);
+});
+
+app.get("/auth/google/callback", async (req, res) => {
+  try {
+    const { code } = req.query;
+
+    const oauth2Client = getGoogleOAuthClient();
+    const { tokens } = await oauth2Client.getToken(code);
+
+    console.log("Google tokens:", tokens);
+
+    res.send(`
+      <h1>Google connected successfully</h1>
+      <p>You can return to Student OS.</p>
+      <pre>${JSON.stringify(tokens, null, 2)}</pre>
+    `);
+  } catch (error) {
+    res.status(500).send("Google OAuth failed: " + error.message);
+  }
+});
+
+app.use(requireAuth);
+
+
 /**
  * Protected routes start here.
  */
