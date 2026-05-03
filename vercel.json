@@ -25,9 +25,13 @@
       "source": "/",
       "destination": "/api"
     },
-    
+
     {
   "source": "/terms",
+  "destination": "/api"
+},
+{
+  "source": "/debug/:path*",
   "destination": "/api"
 }
 

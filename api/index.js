@@ -57,6 +57,29 @@ async function getConnectionByUserKey(userKey) {
 /**
  * PUBLIC ROUTES
  */
+app.get("/debug/oauth-url", (req, res) => {
+  const oauth2Client = getGoogleOAuthClient();
+
+  const url = oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    scope: [
+      "https://www.googleapis.com/auth/calendar.events",
+      "https://www.googleapis.com/auth/drive.readonly",
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/userinfo.email",
+    ],
+  });
+
+  res.json({
+    appBaseUrl: APP_BASE_URL,
+    redirectUri: `${APP_BASE_URL}/auth/google/callback`,
+    oauthUrl: url,
+  });
+});
+
+
+
 
 app.get("/", (req, res) => {
   res.type("html").send(`
