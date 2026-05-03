@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const APP_BASE_URL = "https://student-os-dun.vercel.app";
+const APP_BASE_URL = "https://studentos.pranshu.website";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -59,13 +59,44 @@ async function getConnectionByUserKey(userKey) {
  */
 
 app.get("/", (req, res) => {
-  res.json({
-    name: "Student OS API",
-    status: "running",
-    version: "2.1.0",
-    privacy: "/privacy",
-    connectGoogle: "/connect/google",
-  });
+  res.type("html").send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Student OS</title>
+        <meta charset="UTF-8" />
+      </head>
+      <body style="font-family: Arial, sans-serif; max-width: 760px; margin: 40px auto; line-height: 1.6; padding: 0 20px;">
+        
+        <h1>Student OS</h1>
+
+        <p>
+          Student OS is an academic execution system that helps students plan
+          and manage study schedules using their own Google account.
+        </p>
+
+        <h2>Get Started</h2>
+        <p>
+          <a href="/connect/google">Connect your Google account</a>
+        </p>
+
+        <!-- 🔴 VERY IMPORTANT: Make this section obvious -->
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="/privacy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+        </ul>
+
+        <!-- 🔴 ALSO ADD FOOTER (Google checks this) -->
+        <hr />
+        <p>
+          <a href="/privacy">Privacy Policy</a> |
+          <a href="/terms">Terms of Service</a>
+        </p>
+
+      </body>
+    </html>
+  `);
 });
 
 
