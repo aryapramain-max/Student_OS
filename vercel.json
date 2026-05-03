@@ -4,6 +4,10 @@
     {
       "source": "/v2/:path*",
       "destination": "/api"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "/api"
     }
   ]
 }
