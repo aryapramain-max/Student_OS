@@ -7,6 +7,8 @@ require("dotenv").config();
 
 const app = express();
 
+
+
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
@@ -61,6 +63,76 @@ app.get("/", (req, res) => {
     version: "2.0.0",
     health: "/v2/health",
   });
+});
+
+app.get("/privacy", (req, res) => {
+  res.type("html").send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Student OS Privacy Policy</title>
+        <meta charset="UTF-8" />
+      </head>
+      <body>
+        <h1>Student OS Privacy Policy</h1>
+        <p><strong>Effective Date:</strong> 2026-05-03</p>
+
+        <p>
+          Student OS is an academic execution assistant that connects to services
+          such as Google Calendar, Google Drive, Google Sheets, Notion, Todoist,
+          and GitHub only when authorized by the user.
+        </p>
+
+        <h2>Information We Access</h2>
+        <p>
+          Depending on the integrations enabled, Student OS may access calendar
+          events, academic files, spreadsheet data, Notion dashboard content,
+          Todoist tasks, and GitHub repository information needed to perform
+          requested actions.
+        </p>
+
+        <h2>How Information Is Used</h2>
+        <p>
+          Information is used only to complete user-requested academic actions,
+          such as creating study blocks, reading academic dashboards, creating
+          tasks, checking project progress, and reading study materials.
+        </p>
+
+        <h2>Data Storage</h2>
+        <p>
+          Student OS does not intentionally sell user data. For this version,
+          integration credentials are stored as environment variables on the
+          backend server. Users should not submit sensitive personal information
+          unless necessary for the requested academic action.
+        </p>
+
+        <h2>Third-Party Services</h2>
+        <p>
+          Student OS connects to third-party services including Google, Notion,
+          Todoist, and GitHub. Their own privacy policies apply when using those
+          services.
+        </p>
+
+        <h2>Data Sharing</h2>
+        <p>
+          Student OS does not sell user data to advertisers. Data may be sent to
+          connected services only as needed to complete user-requested actions.
+        </p>
+
+        <h2>Security</h2>
+        <p>
+          Requests to the backend are protected by an API key. Users should not
+          share private credentials or access tokens.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          For questions about this privacy policy, contact:
+          aryapramain@gmail.com
+        </p>
+      </body>
+    </html>
+  `);
 });
 
 /**
