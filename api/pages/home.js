@@ -215,6 +215,19 @@ function homePage() {
             background: rgba(255,255,255,0.08);
           }
 
+          .nav-links .gpt-nav-link {
+            color: #000000;
+            background: #ffffff;
+            border: 1px solid #ffffff;
+            font-weight: 950;
+          }
+
+          .nav-links .gpt-nav-link:hover {
+            color: #000000;
+            background: #ffffff;
+            transform: translateY(-1px);
+          }
+
           .hero {
             display: grid;
             grid-template-columns: 1.02fr 0.98fr;
@@ -331,6 +344,23 @@ function homePage() {
 
           .btn-primary:hover {
             transform: translateY(-3px);
+          }
+
+          .btn-gpt {
+            background: #ffffff;
+            color: #000000;
+            border: 1px solid #ffffff;
+            font-size: 16px;
+            font-weight: 950;
+            min-height: 58px;
+            padding: 0 24px;
+            box-shadow:
+              0 0 0 1px rgba(255,255,255,0.22),
+              0 18px 54px rgba(255,255,255,0.13);
+          }
+
+          .btn-gpt:hover {
+            transform: translateY(-4px);
           }
 
           .btn-secondary {
@@ -945,6 +975,14 @@ function homePage() {
               </a>
 
               <div class="nav-links">
+                <a
+                  class="interactive gpt-nav-link"
+                  href="https://chatgpt.com/g/g-69f75e6c55688191b5d85600c48ab4de-semesteros-gpt"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open GPT ↗
+                </a>
                 <a class="interactive" href="#features">Features</a>
                 <a class="interactive" href="#workflow">Workflow</a>
                 <a class="interactive" href="/connect/google">Connect</a>
@@ -971,6 +1009,16 @@ function homePage() {
               </p>
 
               <div class="actions">
+                <a
+                  class="btn btn-gpt interactive magnetic"
+                  href="https://chatgpt.com/g/g-69f75e6c55688191b5d85600c48ab4de-semesteros-gpt"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span>Open SemesterOS GPT</span>
+                  <span>↗</span>
+                </a>
+
                 <a class="btn btn-primary interactive magnetic" href="/connect/google">
                   <span>Connect Google</span>
                   <span>→</span>
@@ -1144,20 +1192,20 @@ function homePage() {
             <div class="workflow-card">
               <div class="workflow-row interactive reveal">
                 <div class="step">1</div>
+                <h3>Open the GPT</h3>
+                <p>Launch SemesterOS GPT and use it as your academic execution assistant.</p>
+              </div>
+
+              <div class="workflow-row interactive reveal">
+                <div class="step">2</div>
                 <h3>Connect Google</h3>
                 <p>Authorize Semester OS to create calendar study blocks and read supported Drive files.</p>
               </div>
 
               <div class="workflow-row interactive reveal">
-                <div class="step">2</div>
+                <div class="step">3</div>
                 <h3>Copy your private key</h3>
                 <p>You get a private Semester OS user key that links the GPT to your connected account.</p>
-              </div>
-
-              <div class="workflow-row interactive reveal">
-                <div class="step">3</div>
-                <h3>Plan with the GPT</h3>
-                <p>Ask it to break down exams, read notes, build study plans, or organize your semester workflow.</p>
               </div>
 
               <div class="workflow-row interactive reveal">
@@ -1174,14 +1222,19 @@ function homePage() {
                 <div>
                   <h2>Ready to operate your semester?</h2>
                   <p>
-                    Connect your Google account and start using Semester OS to transform
+                    Open SemesterOS GPT, connect your Google account, and start transforming
                     deadlines, files, and study goals into execution.
                   </p>
                 </div>
 
-                <a class="btn btn-primary interactive magnetic" href="/connect/google">
-                  <span>Connect Google</span>
-                  <span>→</span>
+                <a
+                  class="btn btn-primary interactive magnetic"
+                  href="https://chatgpt.com/g/g-69f75e6c55688191b5d85600c48ab4de-semesteros-gpt"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span>Open SemesterOS GPT</span>
+                  <span>↗</span>
                 </a>
               </div>
             </div>
@@ -1191,6 +1244,15 @@ function homePage() {
             <div class="container footer-inner">
               <span>Semester OS · Made by Pranshu Mangale and Aryan Makwana</span>
               <span>
+                <a
+                  class="interactive"
+                  href="https://chatgpt.com/g/g-69f75e6c55688191b5d85600c48ab4de-semesteros-gpt"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open GPT
+                </a>
+                &nbsp;·&nbsp;
                 <a class="interactive" href="/privacy">Privacy Policy</a>
                 &nbsp;·&nbsp;
                 <a class="interactive" href="/terms">Terms of Service</a>
