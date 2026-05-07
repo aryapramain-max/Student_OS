@@ -119,122 +119,13 @@ app.get("/", (req, res) => {
   res.type("html").send(homePage());
 });
 
-app.get("/terms", (req, res) => {
-  res.type("html").send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Student OS Terms of Service</title>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </head>
-      <body style="font-family: Arial, sans-serif; max-width: 760px; margin: 40px auto; line-height: 1.6; padding: 0 20px;">
-        <h1>Student OS Terms of Service</h1>
-
-        <p>
-          By using Student OS, you agree to use the service responsibly for
-          academic planning and productivity purposes.
-        </p>
-
-        <h2>Use of Service</h2>
-        <p>
-          You agree not to misuse the service or attempt to access other users' data.
-        </p>
-
-        <h2>Third-Party Services</h2>
-        <p>
-          Student OS integrates with Google services. Use of those services is
-          subject to Google's terms and policies.
-        </p>
-
-        <h2>Liability</h2>
-        <p>
-          Student OS is provided as-is without warranties of any kind.
-        </p>
-
-        <h2>Contact</h2>
-        <p>
-          <a href="mailto:aryapramain@gmail.com">aryapramain@gmail.com</a>
-        </p>
-
-        <hr />
-        <p>
-          <a href="/">Home</a> |
-          <a href="/privacy">Privacy Policy</a>
-        </p>
-      </body>
-    </html>
-  `);
-});
-
 app.get("/privacy", (req, res) => {
-  res.type("html").send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Student OS Privacy Policy</title>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </head>
-      <body style="font-family: Arial, sans-serif; max-width: 760px; margin: 40px auto; line-height: 1.6; padding: 0 20px;">
-        <h1>Student OS Privacy Policy</h1>
-        <p><strong>Effective Date:</strong> May 3, 2026</p>
-
-        <p>
-          Student OS is an academic execution assistant that helps users plan,
-          organize, and complete academic work. It may connect to third-party
-          services such as Google Calendar, Google Drive, and Google Sheets when
-          authorized by the user.
-        </p>
-
-        <h2>Information We Access</h2>
-        <p>
-          Depending on the features used, Student OS may access calendar events,
-          files, documents, spreadsheet data, and academic planning information.
-          Access is limited to what is needed to complete user-requested actions.
-        </p>
-
-        <h2>How Information Is Used</h2>
-        <p>
-          Information is used only to perform requested actions, such as creating
-          study blocks, reading academic files, searching Drive files, or updating
-          academic progress records.
-        </p>
-
-        <h2>Data Sharing</h2>
-        <p>
-          Student OS does not sell user data. Data may be sent to connected
-          services only as necessary to complete user-requested actions.
-        </p>
-
-        <h2>Third-Party Services</h2>
-        <p>
-          Student OS may interact with Google services and other integrations.
-          Those services are governed by their own terms and privacy policies.
-        </p>
-
-        <h2>Security</h2>
-        <p>
-          API requests are protected using authentication. Users should not share
-          private credentials, access tokens, or API keys.
-        </p>
-
-        <h2>Contact</h2>
-        <p>
-          For privacy questions, contact:
-          <a href="mailto:aryapramain@gmail.com">aryapramain@gmail.com</a>
-        </p>
-
-        <hr />
-        <p>
-          <a href="/">Home</a> |
-          <a href="/terms">Terms of Service</a>
-        </p>
-      </body>
-    </html>
-  `);
+  res.type("html").send(privacyPage());
 });
 
+app.get("/terms", (req, res) => {
+  res.type("html").send(termsPage());
+});
 /**
  * GOOGLE CONNECT FLOW
  */
