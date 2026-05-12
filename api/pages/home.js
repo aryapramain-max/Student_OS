@@ -1004,7 +1004,7 @@ function homePage() {
 
               <p class="subtitle">
                 Semester OS helps students convert semester chaos into clarity — plan exam prep,
-                organize assignments, read academic material from Google Drive, and create focused
+                organize assignments, read academic material from user selected Google Drive files, and create focused
                 Google Calendar study blocks through one clean system.
               </p>
 
@@ -1164,7 +1164,7 @@ function homePage() {
                 <div class="feature-icon">02</div>
                 <h3>Use your Drive</h3>
                 <p>
-                  Search and read supported Google Drive files such as notes, syllabi, Google Docs,
+                  Search and read supported selected Google Drive files such as notes, syllabi, Google Docs,
                   Sheets, PDFs, markdown, and text files.
                 </p>
               </article>
@@ -1199,7 +1199,7 @@ function homePage() {
               <div class="workflow-row interactive reveal">
                 <div class="step">2</div>
                 <h3>Connect Google</h3>
-                <p>Authorize Semester OS to create calendar study blocks and read supported Drive files.</p>
+                <p>Authorize Semester OS to create calendar study blocks and read selected Drive files.</p>
               </div>
 
               <div class="workflow-row interactive reveal">
